@@ -24,45 +24,36 @@ class TransactionsRepository {
   }
 
   public getBalance(): Balance {
-    const incomes = this.transactions.find(
-      transaction => transaction.type === 'income',
+    const { income, outcome } = this.transactions.reduce(
+      (acc: Balance, cur: Transaction) => {
+        switch (cur.type) {
+          case 'income':
+            acc.income += cur.value;
+            break;
+          case 'outcome':
+            acc.outcome += cur.value;
+            break;
+          default:
+            break;
+        }
+
+        return acc;
+      },
+      {
+        income: 0,
+        outcome: 0,
+        total: 0,
+      },
     );
-
-    const outcomes = this.transactions.find(
-      transaction => transaction.type === 'outcome',
-    );
-
-    const outcome = outcomes
-      ? this.transactions
-          .filter(transactions => transactions.type === 'outcome')
-          .map(filtered => filtered.value)
-          .reduce((acc, cur) => acc + cur)
-      : 0;
-    const income = incomes
-      ? this.transactions
-          .filter(transactions => transactions.type === 'income')
-          .map(filtered => filtered.value)
-          .reduce((acc, cur) => acc + cur)
-      : 0;
-
     const total = income - outcome;
 
-    const balance = { income, outcome, total };
-
-    return balance;
+    return { income, outcome, total };
   }
 
   public create({ title, value, type }: CreateTransaction): Transaction {
     const transaction = new Transaction({ title, value, type });
 
     this.transactions.push(transaction);
-
-    const balance = this.getBalance();
-
-    if (balance.income < balance.outcome) {
-      this.transactions.pop();
-      throw Error('You have no balance to this transaction');
-    }
 
     return transaction;
   }
